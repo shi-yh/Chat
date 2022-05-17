@@ -27,9 +27,7 @@ public class SocketClient : MonoBehaviour
     
     public InputField myName;
 
-    public string message = "";
-
-    
+    private Queue<MessageData>  _messages = new Queue<MessageData>();
     
 
     // Start is called before the first frame update
@@ -62,10 +60,8 @@ public class SocketClient : MonoBehaviour
 
             if (length>0)
             {
-                if (_data[0]==0)
-                {
-                    message = Encoding.UTF8.GetString(_data, 1, length);
-                }
+                MessageData md = ProtobufHelper.DeSerialize<MessageData>(Encoding.UTF8.GetString(_data,0,length));
+                _messages.Enqueue(md);
             }
         }
     }
@@ -77,23 +73,21 @@ public class SocketClient : MonoBehaviour
     /// <param name="message"></param>
     void SendMessage(string name, string message)
     {
-        byte[] arrMsg = Encoding.UTF8.GetBytes(message);
 
-        byte[] nameMsg = Encoding.UTF8.GetBytes(name);
-        ///名字不大于
-        byte[] send = new byte[arrMsg.Length + 1 +22];
+        MessageData md = new MessageData();
 
-        send[0] = 0;
+        md.name = name;
 
-        Buffer.BlockCopy(arrMsg, 0, send, 1, arrMsg.Length);
+        md.message = message;
+
+        byte[] send = Encoding.UTF8.GetBytes(ProtobufHelper.Serialize(md));
         
         clientSocket.Send(send);
     }
 
     public void OnSendButtonClick()
     {
-        string value = myName.text + ":" + InputField.text;
-        SendMessage("",value);
+        SendMessage(myName.text,InputField.text);
         InputField.text = "";
     }
 
@@ -126,10 +120,16 @@ public class SocketClient : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!string.IsNullOrEmpty(message))
+        while (_messages.Count>0)
         {
-            // chat.text += "\n" + message;
-            message = "";
+            AddMessage(_messages.Dequeue());
         }
     }
+
+    private void AddMessage(MessageData md)
+    {
+        Debug.Log(md.ToString());
+    }
+    
+    
 }

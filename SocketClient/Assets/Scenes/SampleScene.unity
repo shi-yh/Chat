@@ -678,7 +678,6 @@ GameObject:
   - component: {fileID: 498629440}
   - component: {fileID: 498629439}
   - component: {fileID: 498629438}
-  - component: {fileID: 498629443}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -702,7 +701,6 @@ MonoBehaviour:
   port: 7788
   InputField: {fileID: 1341828099}
   myName: {fileID: 1145037354}
-  message: 
 --- !u!114 &498629439
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -783,18 +781,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &498629443
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 498629437}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cf2d28320daa0cd45b4bdb4e62f14570, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
