@@ -5,19 +5,16 @@ using UnityEngine.UI;
 
 public class TextCell : MonoBehaviour
 {
-    // public 
+    public Text name;
 
-    public Text _text;
-    
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    public Text msg;
 
-    // Update is called once per frame
-    void Update()
+    public void RefreshView(MessageData md)
     {
+        gameObject.SetActive(true);
         
+        name.text = md.name;
+
+        msg.text = md.message;
     }
 }

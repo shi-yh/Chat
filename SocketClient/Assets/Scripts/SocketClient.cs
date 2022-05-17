@@ -1,18 +1,29 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
+using Application = UnityEngine.Application;
 
 public class SocketClient : MonoBehaviour
 {
+    private static int _picIdx;
+
+    public static int PicIdx
+    {
+        get
+        {
+            _picIdx++;
+            return _picIdx;
+        }
+    }
+    
+    
     public string ipaddress = "192.168.65.11";
 
     public int port = 7788;
@@ -21,13 +32,21 @@ public class SocketClient : MonoBehaviour
 
     private Thread _thread;
 
-    private byte[] _data = new byte[1024];
+    private byte[] _data = new byte[1024*1024*20];
 
     public InputField InputField;
     
     public InputField myName;
 
     private Queue<MessageData>  _messages = new Queue<MessageData>();
+
+    public TextCell textCell;
+
+    public ImgCell imgCell;
+
+    public Transform cellparent;
+
+    public ScrollRect scroll;
     
 
     // Start is called before the first frame update
@@ -57,10 +76,14 @@ public class SocketClient : MonoBehaviour
             }
 
             int length = clientSocket.Receive(_data);
-
+            
             if (length>0)
             {
-                MessageData md = ProtobufHelper.DeSerialize<MessageData>(Encoding.UTF8.GetString(_data,0,length));
+                byte[] resultData = new byte[length];
+                
+                Buffer.BlockCopy(_data,0,resultData,0,length);
+                
+                MessageData md = ProtobufHelper.DeSerialize<MessageData>(resultData);
                 _messages.Enqueue(md);
             }
         }
@@ -71,23 +94,37 @@ public class SocketClient : MonoBehaviour
     /// </summary>
     /// <param name="name"></param>
     /// <param name="message"></param>
-    void SendMessage(string name, string message)
+    void SendMessage(string message)
     {
 
         MessageData md = new MessageData();
 
-        md.name = name;
+        md.name = myName.text;
 
         md.message = message;
 
-        byte[] send = Encoding.UTF8.GetBytes(ProtobufHelper.Serialize(md));
+        byte[] send = ProtobufHelper.Serialize2Bytes(md);
         
         clientSocket.Send(send);
     }
 
+    void SendMessage(byte[] img)
+    {
+        MessageData md = new MessageData();
+
+        md.name = myName.text;
+
+        md.img = img;
+        
+        byte[] send = ProtobufHelper.Serialize2Bytes(md);
+        
+        clientSocket.Send(send);
+    }
+    
+
     public void OnSendButtonClick()
     {
-        SendMessage(myName.text,InputField.text);
+        SendMessage(InputField.text);
         InputField.text = "";
     }
 
@@ -104,6 +141,17 @@ public class SocketClient : MonoBehaviour
 
         if (od.ShowDialog() == DialogResult.OK)
         {
+            using (FileStream Fs = new FileStream(od.FileName, FileMode.Open))
+            {
+                int length = Fs.Read(_data, 0, _data.Length);
+
+                ///TODO 这里要处理一下读到头的问题
+                byte[] img = new byte[length];
+                
+                Buffer.BlockCopy(_data,0,img,0,length);
+                
+                SendMessage(img);
+            }
         }
     }
 
@@ -114,6 +162,23 @@ public class SocketClient : MonoBehaviour
         ///既不接受也不发送
         clientSocket.Shutdown(SocketShutdown.Both);
         clientSocket.Close();
+    }
+    
+    private void OnApplicationQuit()
+    {
+        DeleteTempRes();
+    }
+    
+    private void DeleteTempRes()
+    {
+        DirectoryInfo dir = new DirectoryInfo(Application.streamingAssetsPath);
+    
+        FileInfo[] files = dir.GetFiles();
+    
+        for (int i = 0; i < files.Length; i++)
+        {
+            File.Delete(Application.streamingAssetsPath+"/"+files[i].Name);
+        }
     }
 
 
@@ -126,9 +191,27 @@ public class SocketClient : MonoBehaviour
         }
     }
 
+
     private void AddMessage(MessageData md)
     {
-        Debug.Log(md.ToString());
+        if (!string.IsNullOrEmpty(md.message))
+        {
+            TextCell tc = Instantiate(textCell,cellparent);
+            
+            tc.RefreshView(md);
+        }
+
+        if (md.img!=null&&md.img.Length>0)
+        {
+            ImgCell ic = Instantiate(imgCell, cellparent);
+            
+            ic.RefershView(md);
+        }
+
+
+        scroll.verticalNormalizedPosition = 0;
+
+
     }
     
     

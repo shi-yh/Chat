@@ -15,7 +15,7 @@ namespace Client
 
         private Thread _thread;
 
-        private byte[] _data = new byte[1024];
+        private byte[] _data = new byte[1024*1024*20];
 
         public bool Connected
         {
@@ -50,15 +50,18 @@ namespace Client
 
                     Console.WriteLine("收到" + message);
 
-                    Program.BroadcastMessage(message);
+                    byte[] broadCastData = new byte[length];
+
+                    Buffer.BlockCopy(_data, 0, broadCastData, 0, length);
+
+                    Program.BroadcastMessage(broadCastData);
                 }
             }
         }
 
-        public void SendMessage(string message)
+        public void SendMessage(byte[] message)
         {
-            byte[] data = Encoding.UTF8.GetBytes(message);
-            _clientSocket.Send(data);
+            _clientSocket.Send(message);
         }
     }
 
@@ -66,7 +69,7 @@ namespace Client
     {
         static List<Client> clientList = new List<Client>();
 
-        public static void BroadcastMessage(string message)
+        public static void BroadcastMessage(byte[] message)
         {
             var notConnectedList = new List<Client>();
 

@@ -10,7 +10,7 @@ public class MessageData
    public string message;
 
    [ProtoMember(3)]
-   public string img;
+   public byte[] img;
 
    public override string ToString()
    {
