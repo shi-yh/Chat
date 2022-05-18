@@ -12,6 +12,9 @@ public class MessageData
    [ProtoMember(3)]
    public byte[] img;
 
+   [ProtoMember(4)]
+   public byte[] avatar;
+   
    public override string ToString()
    {
       return name +":"+ message;

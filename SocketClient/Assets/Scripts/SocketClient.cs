@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
 using System.Windows.Forms;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
 using Application = UnityEngine.Application;
+using Button = UnityEngine.UI.Button;
 
 public class SocketClient : MonoBehaviour
 {
@@ -23,23 +19,11 @@ public class SocketClient : MonoBehaviour
         }
     }
     
-    
-    public string ipaddress = "192.168.65.11";
-
-    public int port = 7788;
-
-    private Socket clientSocket;
-
-    private Thread _thread;
-
-    private byte[] _data = new byte[1024*1024*20];
 
     public InputField InputField;
     
     public InputField myName;
-
-    private Queue<MessageData>  _messages = new Queue<MessageData>();
-
+    
     public TextCell textCell;
 
     public ImgCell imgCell;
@@ -47,84 +31,38 @@ public class SocketClient : MonoBehaviour
     public Transform cellparent;
 
     public ScrollRect scroll;
+
+    public Button connectButton;
     
+    public Button _avatar;
 
-    // Start is called before the first frame update
-    void Start()
+    private SocketClientData _controller;
+
+    
+    public void OnClickConnect()
     {
-        ConnectToServer();
-    }
-
-    private void ConnectToServer()
-    {
-        clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-        clientSocket.Connect(new IPEndPoint(IPAddress.Parse(ipaddress), port));
-
-        _thread = new Thread(ReceiveMessage);
-
-        _thread.Start();
-    }
-
-    private void ReceiveMessage()
-    {
-        while (true)
+        if (string.IsNullOrEmpty(myName.text))
         {
-            if (clientSocket.Connected == false)
-            {
-                break;
-            }
-
-            int length = clientSocket.Receive(_data);
-            
-            if (length>0)
-            {
-                byte[] resultData = new byte[length];
-                
-                Buffer.BlockCopy(_data,0,resultData,0,length);
-                
-                MessageData md = ProtobufHelper.DeSerialize<MessageData>(resultData);
-                _messages.Enqueue(md);
-            }
+            Debug.LogError("请输入昵称");
+            return;
         }
-    }
-
-    /// <summary>
-    /// 一个中文三个字节
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="message"></param>
-    void SendMessage(string message)
-    {
-
-        MessageData md = new MessageData();
-
-        md.name = myName.text;
-
-        md.message = message;
-
-        byte[] send = ProtobufHelper.Serialize2Bytes(md);
         
-        clientSocket.Send(send);
-    }
+        _controller = new SocketClientData(null,myName.text);
 
-    void SendMessage(byte[] img)
-    {
-        MessageData md = new MessageData();
-
-        md.name = myName.text;
-
-        md.img = img;
+        myName.enabled = false;
         
-        byte[] send = ProtobufHelper.Serialize2Bytes(md);
-        
-        clientSocket.Send(send);
+        connectButton.gameObject.SetActive(false);
     }
     
-
+    
     public void OnSendButtonClick()
     {
-        SendMessage(InputField.text);
+        if (string.IsNullOrEmpty(InputField.text) )
+        {
+            return;
+        }
+        
+        _controller.SendMessage(InputField.text);
         InputField.text = "";
     }
 
@@ -143,26 +81,18 @@ public class SocketClient : MonoBehaviour
         {
             using (FileStream Fs = new FileStream(od.FileName, FileMode.Open))
             {
-                int length = Fs.Read(_data, 0, _data.Length);
+                int length = Fs.Read(Global.buffer, 0, Global.buffer.Length);
 
                 ///TODO 这里要处理一下读到头的问题
                 byte[] img = new byte[length];
                 
-                Buffer.BlockCopy(_data,0,img,0,length);
+                Buffer.BlockCopy(Global.buffer,0,img,0,length);
                 
-                SendMessage(img);
+                _controller.SendMessage(img);
             }
         }
     }
-
-
-    private void OnDestroy()
-    {
-        _thread?.Abort();
-        ///既不接受也不发送
-        clientSocket.Shutdown(SocketShutdown.Both);
-        clientSocket.Close();
-    }
+    
     
     private void OnApplicationQuit()
     {
@@ -185,15 +115,20 @@ public class SocketClient : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        while (_messages.Count>0)
+        if (_controller!=null)
         {
-            AddMessage(_messages.Dequeue());
+            AddMessage(_controller.GetMessage());
         }
     }
 
 
     private void AddMessage(MessageData md)
     {
+        if (md==null)
+        {
+            return;;
+        }
+        
         if (!string.IsNullOrEmpty(md.message))
         {
             TextCell tc = Instantiate(textCell,cellparent);
@@ -208,10 +143,7 @@ public class SocketClient : MonoBehaviour
             ic.RefershView(md);
         }
 
-
         scroll.verticalNormalizedPosition = 0;
-
-
     }
     
     
